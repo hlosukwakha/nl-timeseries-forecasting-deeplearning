@@ -115,7 +115,7 @@ This repository gives you a practical, reproducible workflow:
 ### 1) Clone and run
 
 ```bash
-git clone <YOUR_GIT_URL_HERE>
+git clone https://github.com/hlosukwakha/nl-timeseries-forecasting-deeplearning.git
 cd nl-timeseries-forecasting-deeplearning
 
 cp .env.example .env
