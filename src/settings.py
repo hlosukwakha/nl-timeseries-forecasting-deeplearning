@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     seed: int = 42
 
     # Tracking
-    mlflow_tracking_uri: str = "http://mlflow:5002"
+    mlflow_tracking_uri: str = "http://mlflow:5000"
     mlflow_experiment_name: str = "knmi_hourly_forecasting"
     model_registry_path: str = "/models"
 

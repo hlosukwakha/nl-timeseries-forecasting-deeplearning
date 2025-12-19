@@ -56,5 +56,5 @@ def evaluate_all_models() -> None:
     df.to_csv(out_dir / "model_comparison.csv", index=False)
 
     # Markdown report
-    md = ["# Model comparison (latest runs)", "", df.to_markdown(index=False), "", "Open MLflow: http://localhost:5000"]
+    md = ["# Model comparison (latest runs)", "", df.to_markdown(index=False), "", "Open MLflow: http://localhost:5002"]
     (out_dir / "MODEL_COMPARISON.md").write_text("\n".join(md), encoding="utf-8")

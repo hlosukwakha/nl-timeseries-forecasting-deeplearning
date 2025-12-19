@@ -40,7 +40,7 @@ def run_all():
     preprocess_knmi_hourly()
     train_all_models(model_list=["tft", "nbeats", "timexer", "xlstmtime"])
     evaluate_all_models()
-    print("[bold green]Done.[/bold green] Open MLflow at http://localhost:5000")
+    print("[bold green]Done.[/bold green] Open MLflow at http://localhost:5002")
 
 if __name__ == "__main__":
     app()

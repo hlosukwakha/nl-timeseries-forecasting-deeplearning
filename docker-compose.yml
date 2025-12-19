@@ -4,12 +4,13 @@ services:
       context: .
       dockerfile: docker/Dockerfile.mlflow
     environment:
-      - MLFLOW_TRACKING_URI=http://0.0.0.0:5002
-      - MLFLOW_SERVER_ALLOWED_HOSTS=localhost,127.0.0.1,mlflow,mlflow:5002
+      - MLFLOW_SERVER_ALLOWED_HOSTS=localhost,localhost:5002,127.0.0.1,mlflow,mlflow:5000
+      - MLFLOW_SERVER_DISABLE_SECURITY_MIDDLEWARE=true
+
     volumes:
       - ./mlruns:/mlruns
     ports:
-      - "5002:5002"
+      - "5002:5000"
 
   trainer:
     build:
@@ -36,7 +37,7 @@ services:
       - ./models:/models
       - ./mlruns:/mlruns
     ports:
-      - "8002:8002"
+      - "8002:8000"
     depends_on:
       - mlflow
 
@@ -52,7 +53,7 @@ services:
   grafana:
     image: grafana/grafana:latest
     ports:
-      - "3002:3002"
+      - "3000:3000"
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning
       - ./grafana/dashboards:/var/lib/grafana/dashboards
