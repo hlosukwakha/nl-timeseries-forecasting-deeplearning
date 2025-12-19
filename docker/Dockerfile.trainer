@@ -1,0 +1,23 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    git \
+    curl \
+  && rm -rf /var/lib/apt/lists/*
+
+COPY requirements/ /app/requirements/
+
+# CPU-only torch (2.5.1) from PyTorch CPU index
+RUN pip install --no-cache-dir --upgrade pip \
+ && pip install --no-cache-dir torch==2.5.1 --index-url https://download.pytorch.org/whl/cpu \
+ && pip install --no-cache-dir -r /app/requirements/train.txt
+
+COPY src/ /app/src/
+COPY .env.example /app/.env.example
+COPY README.md /app/README.md
+
+ENV PYTHONPATH=/app
+CMD ["python", "-m", "src.cli", "run-all"]

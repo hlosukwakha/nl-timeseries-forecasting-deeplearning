@@ -1,0 +1,60 @@
+services:
+  mlflow:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.mlflow
+    environment:
+      - MLFLOW_TRACKING_URI=http://0.0.0.0:5002
+      - MLFLOW_SERVER_ALLOWED_HOSTS=localhost,127.0.0.1,mlflow,mlflow:5002
+    volumes:
+      - ./mlruns:/mlruns
+    ports:
+      - "5002:5002"
+
+  trainer:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.trainer
+    env_file:
+      - .env
+    volumes:
+      - ./data:/data
+      - ./mlruns:/mlruns
+      - ./models:/models
+      - ./src:/app/src
+      - ./requirements:/app/requirements
+    depends_on:
+      - mlflow
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    env_file:
+      - .env
+    volumes:
+      - ./models:/models
+      - ./mlruns:/mlruns
+    ports:
+      - "8002:8002"
+    depends_on:
+      - mlflow
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      - api
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3002:3002"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      - prometheus
