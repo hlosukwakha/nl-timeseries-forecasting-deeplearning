@@ -11,11 +11,10 @@ import torch
 
 from src.models.pt_forecasting import _make_pt_dataset, train_tft, train_nbeats, train_xlstmtime
 from src.settings import settings
+from neuralforecast import NeuralForecast
+from neuralforecast.models import TimeXer
 
 
-# ---------------------------------------------------------------------
-# Silence benign Lightning warnings from third-party model classes
-# ---------------------------------------------------------------------
 warnings.filterwarnings(
     "ignore",
     message=r"Attribute 'loss' is an instance of `nn\.Module` and is already saved during checkpointing\.",
@@ -27,12 +26,6 @@ warnings.filterwarnings(
 
 
 def _to_numpy_1d(x) -> np.ndarray:
-    """
-    Convert a pytorch-forecasting output to a 1D numpy array.
-
-    Some pytorch-forecasting versions return tuples/lists (tensor, metadata).
-    This helper unwraps nested containers safely.
-    """
     while isinstance(x, (tuple, list)) and len(x) > 0:
         x = x[0]
 
@@ -59,10 +52,9 @@ def _rmse(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     return float(np.sqrt(np.nanmean((y_true - y_pred) ** 2)))
 
 
-def _log_example_plot(ds_tail: pd.DataFrame, y_true: np.ndarray, y_pred: np.ndarray, out_path: Path, title: str) -> None:
-    """
-    Plot a single example horizon window using timestamps from ds_tail (length h).
-    """
+def _log_example_plot(
+    ds_tail: pd.DataFrame, y_true: np.ndarray, y_pred: np.ndarray, out_path: Path, title: str
+) -> None:
     fig = plt.figure()
     plt.plot(ds_tail["ds"].to_numpy(), y_true, label="y")
     plt.plot(ds_tail["ds"].to_numpy(), y_pred, label="yhat")
@@ -73,9 +65,6 @@ def _log_example_plot(ds_tail: pd.DataFrame, y_true: np.ndarray, y_pred: np.ndar
 
 
 def train_all_models(model_list: list[str]) -> None:
-    """
-    Train and evaluate all requested models. Logs to MLflow and writes a simple example plot per model.
-    """
     mlflow.set_tracking_uri(settings.mlflow_tracking_uri)
     mlflow.set_experiment(settings.mlflow_experiment_name)
 
@@ -95,7 +84,7 @@ def train_all_models(model_list: list[str]) -> None:
         train=False,
         batch_size=64,
         num_workers=num_workers,
-        drop_last=False,  # important: do not truncate evaluation
+        drop_last=False,
     )
 
     for model_name in model_list:
@@ -115,10 +104,10 @@ def train_all_models(model_list: list[str]) -> None:
                 }
             )
 
+            # ---------------------------------------------------------
+            # PyTorch Forecasting models
+            # ---------------------------------------------------------
             if model_name in {"tft", "nbeats", "xlstmtime"}:
-                # -----------------------------
-                # Train via PyTorch Forecasting
-                # -----------------------------
                 if model_name == "tft":
                     fit = train_tft(df, out_models_dir)
                     from pytorch_forecasting.models import TemporalFusionTransformer as Model
@@ -142,12 +131,10 @@ def train_all_models(model_list: list[str]) -> None:
                     trainer_kwargs={"accelerator": "cpu"},
                 )
 
-                # Version-robust extraction (handles tuple/list outputs)
                 if hasattr(pred, "output") and hasattr(pred, "y"):
                     yhat = _to_numpy_1d(pred.output)
                     y = _to_numpy_1d(pred.y)
                 else:
-                    # fallback: treat pred itself as yhat
                     yhat = _to_numpy_1d(pred)
                     y = np.full_like(yhat, np.nan, dtype=float)
 
@@ -173,38 +160,32 @@ def train_all_models(model_list: list[str]) -> None:
                 mlflow.log_artifact(str(fig_path), artifact_path="plots")
                 mlflow.log_artifact(ckpt, artifact_path="checkpoints")
 
+            # ---------------------------------------------------------
+            # NeuralForecast TimeXer
+            # ---------------------------------------------------------
             elif model_name == "timexer":
-                # -----------------------------
-                # Train/evaluate via NeuralForecast (TimeXer)
-                # -----------------------------
-                from neuralforecast import NeuralForecast
-                from neuralforecast.models import TimeXer
-
                 df_nf = df.copy()
                 df_nf["ds"] = pd.to_datetime(df_nf["ds"])
                 exog_cols = [c for c in df_nf.columns if c not in {"unique_id", "ds", "y"}]
 
-                nf = NeuralForecast(
-                    models=[
-                        TimeXer(
-                            h=int(settings.horizon_hours),
-                            input_size=int(settings.encoder_hours),
-                            n_series=1,
-                            futr_exog_list=exog_cols,
-                            max_steps=int(settings.epochs) * 200,
-                            enable_progress_bar=False,
-                            logger=False,
-                        )
-                    ],
-                    freq=settings.freq,
+                model = TimeXer(
+                    h=int(settings.horizon_hours),
+                    input_size=int(settings.encoder_hours),
+                    n_series=1,
+                    futr_exog_list=exog_cols,
+                    max_steps=int(settings.epochs) * 200,
+                    enable_progress_bar=False,
+                    logger=False,
                 )
 
+                nf = NeuralForecast(models=[model], freq=settings.freq)
+
                 cv_df = nf.cross_validation(
-                    df_nf,
+                    df=df_nf,
                     n_windows=int(settings.n_windows),
                     step_size=int(settings.horizon_hours),
                     refit=False,
-                    verbose=0,
+                    verbose=False,
                 )
 
                 y = cv_df["y"].to_numpy()
@@ -212,7 +193,6 @@ def train_all_models(model_list: list[str]) -> None:
 
                 test_mae = _mae(y, yhat)
                 test_rmse = _rmse(y, yhat)
-
                 mlflow.log_metrics({"test_mae": test_mae, "test_rmse": test_rmse})
 
                 # Example plot: last window
