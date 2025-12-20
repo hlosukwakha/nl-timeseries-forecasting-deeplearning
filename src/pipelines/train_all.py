@@ -6,6 +6,7 @@ import mlflow
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import warnings
 
 from mlflow.tracking import MlflowClient
 
@@ -13,6 +14,16 @@ from src.models.pt_forecasting import _make_pt_dataset, train_tft, train_nbeats,
 from src.models.nf_timexer import train_timexer
 from src.settings import settings
 
+
+
+warnings.filterwarnings(
+    "ignore",
+    message=r"Attribute 'loss' is an instance of `nn\.Module` and is already saved during checkpointing\.",
+)
+warnings.filterwarnings(
+    "ignore",
+    message=r"Attribute 'logging_metrics' is an instance of `nn\.Module` and is already saved during checkpointing\.",
+)
 
 def _load_dataset() -> pd.DataFrame:
     path = Path(settings.data_dir) / "processed" / f"knmi_station_{settings.knmi_station_id}_hourly.parquet"
