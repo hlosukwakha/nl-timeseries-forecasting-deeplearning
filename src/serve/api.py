@@ -40,10 +40,15 @@ def forecast(payload: Dict[str, Any]) -> Dict[str, Any]:
     """Starter endpoint.
 
     Expected payload (example):
-    {
-      "series": [{"ds": "2025-01-01T00:00:00", "y": 5.1, "hour_sin": ..., ...}, ...],
-      "h": 24
-    }
+  {
+    "model": "tft",
+    "horizon_hours": 24,
+    "series": [
+      {"ds": "2025-12-20T00:00:00", "y": 6.1},
+      {"ds": "2025-12-20T01:00:00", "y": 6.0},
+      {"ds": "2025-12-20T02:00:00", "y": 5.9}
+    ]
+  }
 
     For a production-ready API:
     - load a model artifact from /models (or from MLflow registry)

@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     # Forecasting
     horizon_hours: int = 24
     encoder_hours: int = 168
-    freq: str = "H"
+    freq: str = "h"
 
     # Evaluation
     n_windows: int = 7  # backtest windows for metrics
