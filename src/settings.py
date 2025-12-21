@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     model_registry_path: str = "/models"
 
     # API
-    api_port: int = 8002
+    api_port: int = 8000
 
 
 settings = Settings()
