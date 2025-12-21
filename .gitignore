@@ -5,5 +5,5 @@ __pycache__/
 .env
 data/
 mlruns/
-models/
+models/*.pyc
 .DS_Store
