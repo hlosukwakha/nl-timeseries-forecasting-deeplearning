@@ -236,7 +236,18 @@ MLflow will contain:
 Example forecast request:
 
 ```bash
-curl -X POST "http://localhost:8002/forecast"   -H "Content-Type: application/json"   -d '{"model":"tft","horizon_hours":24}'
+# You can use JQ to make the output pretty
+curl -X POST "http://localhost:8002/forecast" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "tft",
+    "horizon_hours": 24,
+    "series": [
+      {"ds": "2025-12-20T00:00:00", "y": 6.1},
+      {"ds": "2025-12-20T01:00:00", "y": 6.0},
+      {"ds": "2025-12-20T02:00:00", "y": 5.9}
+    ]
+  }'
 ```
 
 Prometheus metrics:
