@@ -44,6 +44,7 @@ services:
       - ./mlruns:/mlruns
     ports:
       - "8002:8000"
+    command: uvicorn src.serve.api:app --host 0.0.0.0 --port 8000
     depends_on:
       - mlflow
 
